@@ -1,0 +1,197 @@
+You are building a divine-tier Node.js/Express simulation server that demonstrates 
+a next-generation contribution attribution economy. This is not a toy — build it 
+like it will be presented to investors and builders who will judge BSV's future 
+on what they see.
+
+TECH STACK:
+- Node.js + Express
+- WebSocket (ws library)
+- In-memory store (no database)
+- All monetary values in satoshis (BSV)
+
+═══════════════════════════════════════
+CORE DATA MODEL
+═══════════════════════════════════════
+
+Contributor {
+  id: uuid
+  username: string
+  avatar_seed: string (for UI generation)
+  contributions: Contribution[]
+  current_share_pct: number        // always live, always recalculated
+  total_satoshis_earned: number
+  share_history: [timestamp, pct][] // for sparkline trend
+  relevance_score: number           // composite live score
+  status: 'rising' | 'stable' | 'decaying'
+}
+
+Contribution {
+  id: uuid
+  contributor_id: string
+  content: string
+  timestamp: Date
+  base_score: number               // assigned on submission
+  current_score: number            // decays and boosts over time
+  referenced_by: string[]          // ids of contributions that built on this
+  decay_rate: number               // unique per contribution based on type
+  type: 'idea' | 'code' | 'design' | 'critique' | 'synthesis'
+}
+
+RevenueEvent {
+  id: uuid
+  amount_satoshis: number
+  timestamp: Date
+  distribution: { contributor_id, amount, share_pct }[]
+}
+
+═══════════════════════════════════════
+FAIRNESS ENGINE — THE HEART
+═══════════════════════════════════════
+
+class FairnessEngine {
+
+  scoreContribution(contribution, allContributions) {
+    // Base score by type:
+    // idea: 10, code: 25, design: 20, critique: 12, synthesis: 18
+    
+    // Novelty multiplier: compare semantic similarity to existing contributions
+    // Use simple TF-IDF or keyword overlap — penalize redundancy (0.5x to 1.5x)
+    
+    // Length/depth signal: log scale of word count, caps at 2x bonus
+    
+    // Return composite base_score
+  }
+
+  decayScores(allContributions) {
+    // Every contribution decays 1.5% per NEW contribution added after it
+    // BUT: if a contribution has been referenced, decay is cut in half (0.75%)
+    // Synthesis type contributions decay 30% slower — they compound value
+    // A contribution cannot decay below 15% of its original score
+    // Run this after EVERY new contribution
+  }
+
+  boostReferenced(contribution, referencingContribution) {
+    // When contribution B explicitly builds on A (detected by "this builds on", 
+    // "@mention", or semantic similarity > 70%):
+    // A gets a +8% relevance boost, capped at 3 boosts total
+    // Both contributor scores rise — collaboration is rewarded
+  }
+
+  calculateShares(allContributors) {
+    // 1. Sum all current contribution scores per contributor
+    // 2. Total pool = sum of all scores across all contributors  
+    // 3. Each contributor share = their_score_sum / total_pool * 100
+    // 4. Shares ALWAYS sum to exactly 100.00
+    // 5. Update status: rising if share increased last 3 recalcs, 
+    //    decaying if decreased, stable otherwise
+    // Run after every contribution AND every 10 seconds passively
+  }
+
+  distributeRevenue(amount_satoshis, contributors) {
+    // Split proportionally by current_share_pct
+    // Floor to whole satoshis, remainder goes to highest contributor
+    // Log full distribution event
+    // Emit WebSocket event 'revenue_distributed'
+  }
+}
+
+═══════════════════════════════════════
+API ENDPOINTS
+═══════════════════════════════════════
+
+POST /contribute
+  body: { username, content, type? }
+  - Score the contribution
+  - Run decay on all existing contributions
+  - Check for references/boosts
+  - Recalculate all shares
+  - Emit WS event: 'contribution_added', 'shares_updated'
+  - Return: full contributor state + their new share
+
+GET /shares
+  - Returns all contributors sorted by share desc
+  - Include: share_pct, satoshis_earned, status, share_history (last 20 points)
+  - Include: global stats { total_contributors, total_revenue, total_contributions }
+
+POST /revenue  
+  body: { amount_satoshis }
+  - Distribute revenue
+  - Return full distribution breakdown
+
+GET /payouts
+  - Full chronological payout history
+  - Per contributor breakdown
+  - Running totals
+
+GET /leaderboard
+  - Top contributors by: share%, satoshis earned, contributions count, avg score
+  - Include a "momentum" field: rate of share change last 60 seconds
+
+GET /simulate/run
+  - Triggers the auto-simulation (see below)
+  - Returns simulation started confirmation
+
+GET /state
+  - Full snapshot of everything for initial page load
+
+═══════════════════════════════════════
+SIMULATION ENGINE
+═══════════════════════════════════════
+
+On server start, seed with this narrative arc:
+  
+  Phase 1 — Genesis (5 contributors, 8 contributions)
+  A small team starts building. Shares are relatively even.
+  
+  Phase 2 — Acceleration (10 more contributors over 30 seconds)
+  New contributors enter. Some build on existing ideas (triggering boosts).
+  Original contributors start to see share shifts.
+  Early contributors with referenced ideas hold strong.
+  
+  Phase 3 — Scale (20 more contributors, revenue flowing)
+  Revenue stream begins at 500 satoshis every 3 seconds.
+  A star contributor emerges with synthesis-type contributions.
+  Some early contributors decay. New builders rise.
+  The fairness engine visibly breathes — nothing is static.
+
+Auto-simulation loop (when /simulate/run is called):
+  - Every 4 seconds: add a new simulated contribution
+  - Every 3 seconds: inject 500 satoshis revenue
+  - Every 8 seconds: one contribution "builds on" a random previous one
+  - Run for 3 minutes then loop
+  - Emit all events via WebSocket in real time
+
+Use these usernames for simulation:
+genesis_builder, idea_spark, code_weaver, silent_architect, 
+pattern_seeker, signal_caster, depth_runner, chain_thinker,
+root_layer, the_synthesizer, edge_finder, loop_breaker,
+consensus_node, flow_state, late_bloomer, compound_mind,
+reference_king, long_game, foundation_layer, emergence
+
+═══════════════════════════════════════
+WEBSOCKET EVENTS (emit these)
+═══════════════════════════════════════
+
+'contribution_added'    → { contribution, contributor }
+'shares_updated'        → { all contributors with new shares, timestamp }
+'revenue_distributed'   → { amount, distribution[], running_totals }
+'score_decayed'         → { contributor_id, old_score, new_score }
+'boost_applied'         → { from_id, to_id, boost_amount }
+'status_changed'        → { contributor_id, old_status, new_status }
+'simulation_phase'      → { phase: 1|2|3, message }
+
+═══════════════════════════════════════
+QUALITY REQUIREMENTS
+═══════════════════════════════════════
+
+- Every calculation must be deterministic and auditable
+- Log every fairness decision to console with clear reasoning
+- All share changes must be traceable to a specific cause
+- Server must handle 50 concurrent WebSocket connections
+- Zero crashes — wrap everything in try/catch with graceful fallbacks
+- CORS enabled for local Cursor frontend on port 5173
+- On GET /audit/:contribution_id return the full score history 
+  and every factor that influenced that contribution's current score
+
+Start the server on port 3000.
+Print a clean startup banner showing all endpoints.
