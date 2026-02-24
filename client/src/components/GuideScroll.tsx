@@ -128,6 +128,25 @@ export function GuideScroll() {
             <br />
             None of it comes back to you.
           </motion.p>
+          <motion.div
+            variants={itemVariants}
+            className="mt-10 flex flex-col items-center gap-1"
+          >
+            <div className="w-[26px] h-[42px] rounded-full border-2 border-white/40 flex items-start justify-center p-1.5">
+              <motion.div
+                className="w-[4px] h-[8px] rounded-full bg-white/80"
+                animate={{ y: [0, 14, 0] }}
+                transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }}
+              />
+            </div>
+            <motion.span
+              className="text-white/30 text-xs tracking-widest uppercase mt-1"
+              animate={{ opacity: [0.3, 0.7, 0.3] }}
+              transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+            >
+              scroll
+            </motion.span>
+          </motion.div>
         </PanelContent>
       </Panel>
 
