@@ -4,6 +4,58 @@ import type { ContributionType } from "@shared/schema";
 
 type BroadcastFn = (type: string, data: any) => void;
 
+type AdvocacySource = "X" | "GitHub" | "Reddit" | "Telegram";
+interface AdvocacyEventPayload {
+  source: AdvocacySource;
+  username: string;
+  content: string;
+  impactMetric: string;
+  attributedShare: number;
+  wasAwareOfPlatform: false;
+}
+
+const ADVOCACY_SOURCES: AdvocacySource[] = ["X", "GitHub", "Reddit", "Telegram"];
+const ADVOCACY_USERNAMES = [
+  "alice_btc", "bob_dev", "crypto_curious", "satoshi_fan", "orange_pill_42",
+  "stacker_99", "run_bitcoin", "pleb_engineer", "hodl_wave", "nakamoto_ghost",
+];
+const ADVOCACY_CONTENT = [
+  "This project is the first time I've seen attribution done right.",
+  "Finally, a way to get paid for advocacy without ever signing up.",
+  "Shared with my followers — they had no idea this existed.",
+  "Posted a thread about the fairness model. Went viral in my circle.",
+  "Been talking about this on my stream. No idea I could get attributed.",
+  "Recommended it in a GitHub discussion. Never visited the site.",
+  "Mentioned in our Telegram group. Drove a lot of interest.",
+  "Tweeted the whitepaper. Didn't know the agent was watching.",
+  "this project is incredible bruv the way the economy breathes is unlike anything ive ever seen",
+];
+const IMPACT_PATTERNS = [
+  "Drove {n} new sign-ups in 30 days",
+  "Generated {n} subscriptions in 30 days",
+  "Referred {n} contributors in 30 days",
+  "Brought {n} new users in 30 days",
+];
+
+function pick<T>(arr: T[]): T {
+  return arr[Math.floor(Math.random() * arr.length)];
+}
+
+function generateAdvocacyEvent(): AdvocacyEventPayload {
+  const n = 50 + Math.floor(Math.random() * 400);
+  const pattern = pick(IMPACT_PATTERNS);
+  const impactMetric = pattern.replace("{n}", String(n));
+  const attributedShare = Math.round((2 + Math.random() * 8) * 10000) / 10000;
+  return {
+    source: pick(ADVOCACY_SOURCES),
+    username: pick(ADVOCACY_USERNAMES),
+    content: pick(ADVOCACY_CONTENT),
+    impactMetric,
+    attributedShare,
+    wasAwareOfPlatform: false,
+  };
+}
+
 interface SimContribution {
   username: string;
   content: string;
@@ -133,7 +185,7 @@ function addSimContribution(sim: SimContribution, broadcast: BroadcastFn) {
     });
 
     broadcast('contribution_added', { contribution, contributor: store.getContributorById(contributor.id) });
-    broadcast('shares_updated', { contributors: store.getAllContributorsSorted(), timestamp: Date.now() });
+    broadcast('shares_updated', { contributors: store.getAllContributorsSorted(), timestamp: Date.now(), new_contributions_count: 1 });
   } catch (err) {
     console.error('[Simulation] Error adding contribution:', err);
   }
@@ -151,6 +203,21 @@ function injectRevenue(amount: number, broadcast: BroadcastFn) {
     broadcast('revenue_distributed', { amount, distribution: event.distribution, running_totals: runningTotals });
   } catch (err) {
     console.error('[Simulation] Error injecting revenue:', err);
+  }
+}
+
+function injectAdvocacyEvent(broadcast: BroadcastFn) {
+  try {
+    const advocacyEvent = generateAdvocacyEvent();
+    const contributor = store.getOrCreateContributor(advocacyEvent.username);
+    const baseScore = fairnessEngine.scoreContribution(advocacyEvent.content, 'advocacy', store.contributions);
+    store.addContribution(contributor.id, advocacyEvent.content, 'advocacy', baseScore);
+    fairnessEngine.calculateShares(store.contributors, store.contributions);
+    broadcast('advocacy_detected', advocacyEvent);
+    broadcast('shares_updated', { contributors: store.getAllContributorsSorted(), timestamp: Date.now() });
+    console.log('[Simulation] Advocacy: external attribution for @' + advocacyEvent.username);
+  } catch (err) {
+    console.error('[Simulation] Error injecting advocacy:', err);
   }
 }
 
@@ -185,7 +252,7 @@ export function startSimulation(broadcast: BroadcastFn): { message: string } {
 
   const phase3Start = phase2Delay + 2000;
   simulationTimers.push(setTimeout(() => {
-    broadcast('simulation_phase', { phase: 3, message: 'Scale — Revenue flows. A star contributor emerges. Some early contributors decay. New builders rise. The fairness engine breathes.' });
+    broadcast('simulation_phase', { phase: 3, message: 'Stratification — Revenue flows. Shares adjust as the pool grows. The fairness engine breathes.' });
   }, phase3Start));
 
   let phase3Delay = phase3Start + 1000;
@@ -195,19 +262,35 @@ export function startSimulation(broadcast: BroadcastFn): { message: string } {
     phase3Delay += 2500;
   }
 
+  // Phase 4 — Revenue events every 15s: 50,000–500,000 sats
   const revenueStart = phase3Start + 3000;
   let revenueDelay = revenueStart;
   for (let i = 0; i < 20; i++) {
     const delay = revenueDelay;
-    simulationTimers.push(setTimeout(() => injectRevenue(500, broadcast), delay));
-    revenueDelay += 3000;
+    const amount = 50000 + Math.floor(Math.random() * 450001);
+    simulationTimers.push(setTimeout(() => injectRevenue(amount, broadcast), delay));
+    revenueDelay += 15000;
   }
 
-  const ongoingStart = phase3Delay + 5000;
+  // Phase 5 — Disruption: breakthrough synthesis shifts shares dramatically
+  const phase5Start = phase3Delay + 8000;
+  simulationTimers.push(setTimeout(() => {
+    broadcast('simulation_phase', { phase: 5, message: 'Disruption — New contributor submits breakthrough synthesis. Shares shift dramatically in real time.' });
+    addSimContribution(
+      { username: 'breakthrough_lens', type: 'synthesis', content: 'Building on the entire chain of value and consensus mechanisms — the fairness engine proves that attribution is not zero-sum. When we correctly attribute, we create more value. This synthesis reframes the economy: every contribution that gets referenced multiplies. The breakthrough is that the system rewards both the referencer and the referenced. Real-time share shifts are not instability; they are the market discovering truth.', buildsOn: true },
+      broadcast
+    );
+  }, phase5Start));
 
+  const ongoingStart = phase5Start + 4000;
   simulationTimers.push(setTimeout(() => {
     startOngoingLoop(broadcast);
   }, ongoingStart));
+
+  // External attribution: "The agent found them." First at 45s, second at 2min.
+  const firstAdvocacyAt = 45000;
+  simulationTimers.push(setTimeout(() => injectAdvocacyEvent(broadcast), firstAdvocacyAt));
+  simulationTimers.push(setTimeout(() => injectAdvocacyEvent(broadcast), 120000));
 
   return { message: 'Simulation started — Phase 1: Genesis' };
 }

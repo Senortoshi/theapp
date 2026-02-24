@@ -1,0 +1,24 @@
+---
+description: Design rules - apply to all UI files
+globs: ["*.tsx", "*.css"]
+alwaysApply: false
+---
+
+# DESIGN PHILOSOPHY
+
+## The 100ms Rule
+Every interaction responds visually in under 100ms.
+Never show a loading spinner in the primary flow.
+Optimistic UI everywhere.
+
+## Animation Rules
+- CSS transforms only - never layout properties
+- Spring physics not linear easing
+- Stagger card entrances 50ms apart
+- Numbers use countUp animation always
+- The "agent found them" event gets a 500ms 
+  golden flash before the card appears
+
+## The Opening Sequence Is The Product
+The first 10 seconds will be shared on X.
+Treat them accordingly.

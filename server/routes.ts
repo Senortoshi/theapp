@@ -6,18 +6,19 @@ import { fairnessEngine } from "./fairness-engine";
 import { startSimulation, stopSimulation, isSimulationRunning } from "./simulation";
 import { contributeSchema, revenueSchema } from "@shared/schema";
 import type { ContributionType } from "@shared/schema";
+import { registerRealAppRoutes } from "./real-app-routes";
 
 const clients = new Set<WebSocket>();
 
 function broadcast(type: string, data: any) {
   const message = JSON.stringify({ type, data, timestamp: Date.now() });
-  for (const client of clients) {
+  Array.from(clients).forEach((client) => {
     if (client.readyState === WebSocket.OPEN) {
       try {
         client.send(message);
       } catch {}
     }
-  }
+  });
 }
 
 export async function registerRoutes(
@@ -65,6 +66,8 @@ export async function registerRoutes(
       broadcast('shares_updated', { contributors: store.getAllContributorsSorted(), timestamp: Date.now() });
     }
   }, 10000);
+
+  registerRealAppRoutes(app, broadcast);
 
   app.post('/api/contribute', (req, res) => {
     try {
@@ -114,10 +117,11 @@ export async function registerRoutes(
       });
 
       broadcast('contribution_added', { contribution, contributor: store.getContributorById(contributor.id) });
-      broadcast('shares_updated', { contributors: store.getAllContributorsSorted(), timestamp: Date.now() });
+      broadcast('shares_updated', { contributors: store.getAllContributorsSorted(), timestamp: Date.now(), new_contributions_count: 1 });
 
       const updated = store.getContributorById(contributor.id);
-      res.json({ contribution, contributor: updated });
+      const total_pool_score = store.contributions.reduce((s, c) => s + c.current_score, 0);
+      res.json({ contribution, contributor: updated, total_pool_score });
     } catch (err: any) {
       console.error('[API] Error in POST /contribute:', err);
       res.status(500).json({ error: err.message || 'Internal server error' });

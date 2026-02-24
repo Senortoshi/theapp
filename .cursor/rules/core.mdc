@@ -1,0 +1,45 @@
+---
+description: Soul of this project - always apply
+alwaysApply: true
+---
+
+# THE UNNAMED PROJECT — SIMULATOR
+
+## What We Are Building
+A simulation that demonstrates a living contribution economy.
+This is Phase 1. The goal is to make anyone who watches it
+understand the entire model within 30 seconds — no explanation needed.
+
+## The Core Model To Demonstrate
+- Contributions happen both ON the platform and OFF it
+- An AI fairness agent scores all contributions regardless of source
+- Scores decay as newer contributions advance the project
+- Scores boost when others build directly on your work
+- Revenue distributes in satoshis proportional to live share
+- The agent finds external contributors - they don't find the agent
+- No tokens. No equity. Nothing to sell. Only contribution.
+
+## The Most Important Moment To Simulate
+Someone on X posts something positive about the project.
+They never visited the platform.
+The agent detects it. Attributes it. Pays them.
+They get notified. They had no idea.
+THIS is the moment that explains everything.
+
+## Sacred Rules For Every Feature
+- The opening must start in complete darkness
+- Numbers must always animate - never jump
+- Satoshis must feel real and moving
+- The "agent found them" external attribution event
+  must hit differently from all other events
+- A person who has never heard of Bitcoin must 
+  understand this model in 30 seconds of watching
+
+## What This Must NOT Look Like
+- A crypto dashboard
+- A hackathon project
+- Anything corporate or safe
+
+## What This MUST Look Like  
+- The first time anyone has seen money work this way
+- Alive. Sacred. Inevitable.

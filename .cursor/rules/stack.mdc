@@ -1,0 +1,32 @@
+---
+description: Tech stack decisions - always apply
+alwaysApply: true
+---
+
+# TECH STACK
+
+## Frontend
+- React 18 + TypeScript
+- Vite
+- Tailwind CSS
+- Framer Motion for all animations
+- Recharts for the attribution ring
+
+## Data
+- All simulated - no real blockchain yet
+- WebSocket from backend OR internal React simulation loop
+- No localStorage or sessionStorage ever
+
+## Design Tokens
+- Background: #030712
+- Primary green (satoshis): #00ff88
+- Purple (contribution scored): #7c3aed  
+- Red (decaying): #ef4444
+- Gold (external attribution): #f59e0b
+- Font numbers: JetBrains Mono
+- Font text: Inter
+
+## The Gold Color Is Sacred
+#f59e0b is ONLY used for external/advocacy contributions
+"The agent found them" moments are always gold
+Never use gold for anything else

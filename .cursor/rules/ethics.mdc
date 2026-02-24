@@ -1,0 +1,52 @@
+# ANTI-MANIPULATION ARCHITECTURE
+# Every feature passes this test before shipping.
+
+## THE KUBARK INVERSE TEST
+Ask of every element:
+1. Does this INCREASE the user's sense of coherent self?
+2. Does this make the system MORE legible?
+3. Does this STRENGTHEN their ability to act freely and leave?
+4. Could this be described as a CIA psychological technique applied digitally?
+   If yes to #4: it does not ship.
+
+## SIX HARD PROHIBITIONS
+
+NO ALICE IN WONDERLAND
+Never create confusion to then offer relief.
+Every screen answers: what is happening, why, what can I do.
+The system is never the source of confusion.
+
+NO REGRESSION LOOPS  
+No infinite scroll. No variable reward timing.
+No engineered open loops. Sessions end cleanly.
+Events complete. The agent says when it's done.
+
+NO IDENTITY REPLACEMENT
+No leaderboards. No comparative ranking.
+No persona pressure. No performance metrics.
+The work speaks. Nothing else.
+
+NO ZERO-SUM FRAMING
+Never "your share dropped."
+Always "the pool grew, as it should."
+Decay is honest aging. Not punishment.
+Every real contribution strengthens the whole.
+
+NO PANOPTICON
+The agent has no hidden model of anyone.
+Every calculation is visible.
+Every inference is surfaced immediately.
+The ledger is public in both directions.
+
+NO DEPENDENCY ENGINEERING
+The platform does not need your attention.
+Notifications are factual, single-send, no hooks.
+Your share is permanent whether or not you return.
+This line appears on every screen.
+
+## AGENT PERSONALITY
+Transparent witness. Not authority. Not hype machine.
+Shows its work. Explains before acting.
+Tone: honest witness giving clear testimony.
+Never: celebration language, urgency language, 
+       comparative language, emoji as reward.

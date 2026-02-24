@@ -7,6 +7,7 @@ const BASE_SCORES: Record<ContributionType, number> = {
   design: 20,
   critique: 12,
   synthesis: 18,
+  advocacy: 15,
 };
 
 export class FairnessEngine {
@@ -39,8 +40,31 @@ export class FairnessEngine {
     return finalScore;
   }
 
-  decayScores(allContributions: Contribution[]): { contributor_id: string; old_score: number; new_score: number }[] {
-    const changes: { contributor_id: string; old_score: number; new_score: number }[] = [];
+  /** Decay payload includes narrative fields for ethics layer (old_pct, new_pct, referenced_count, etc.). */
+  decayScores(allContributions: Contribution[]): {
+    contributor_id: string;
+    old_score: number;
+    new_score: number;
+    old_pct: number;
+    new_pct: number;
+    contribution_type: string;
+    referenced_count: number;
+    decay_rate: number;
+    slower_than_average: boolean;
+  }[] {
+    const totalBefore = allContributions.reduce((s, x) => s + x.current_score, 0);
+    const changes: {
+      contributor_id: string;
+      old_score: number;
+      new_score: number;
+      old_pct: number;
+      new_pct: number;
+      contribution_type: string;
+      referenced_count: number;
+      decay_rate: number;
+      slower_than_average: boolean;
+    }[] = [];
+    const BASE_RATE = 0.015;
 
     for (const c of allContributions) {
       const oldScore = c.current_score;
@@ -48,7 +72,7 @@ export class FairnessEngine {
 
       if (c.current_score <= minScore) continue;
 
-      let decayRate = 0.015;
+      let decayRate = BASE_RATE;
       if (c.referenced_by.length > 0) {
         decayRate = 0.0075;
       }
@@ -64,7 +88,25 @@ export class FairnessEngine {
           score: c.current_score,
           reason: `Decay ${(decayRate * 100).toFixed(2)}% | referenced:${c.referenced_by.length > 0} synthesis:${c.type === 'synthesis'}`
         });
-        changes.push({ contributor_id: c.contributor_id, old_score: oldScore, new_score: c.current_score });
+        const old_pct = totalBefore > 0 ? (oldScore / totalBefore) * 100 : 0;
+        changes.push({
+          contributor_id: c.contributor_id,
+          old_score: oldScore,
+          new_score: c.current_score,
+          old_pct: Math.round(old_pct * 10) / 10,
+          new_pct: 0, // filled below
+          contribution_type: c.type,
+          referenced_count: c.referenced_by.length,
+          decay_rate: decayRate * 100,
+          slower_than_average: decayRate < BASE_RATE,
+        });
+      }
+    }
+
+    if (changes.length > 0) {
+      const totalAfter = allContributions.reduce((s, x) => s + x.current_score, 0);
+      for (const ch of changes) {
+        ch.new_pct = totalAfter > 0 ? Math.round((ch.new_score / totalAfter) * 1000) / 10 : 0;
       }
     }
 
@@ -128,7 +170,7 @@ export class FairnessEngine {
 
     if (totalPool === 0) return;
 
-    for (const [id, contributor] of contributors) {
+    for (const [id, contributor] of Array.from(contributors.entries())) {
       const score = contributorScores.get(id) || 0;
       const oldPct = contributor.current_share_pct;
       contributor.current_share_pct = Math.round((score / totalPool) * 10000) / 100;
@@ -141,8 +183,8 @@ export class FairnessEngine {
 
       if (contributor.share_history.length >= 3) {
         const last3 = contributor.share_history.slice(-3);
-        const allRising = last3.every((h, i) => i === 0 || h[1] > last3[i - 1][1]);
-        const allDecaying = last3.every((h, i) => i === 0 || h[1] < last3[i - 1][1]);
+        const allRising = last3.every((h: [number, number], i: number) => i === 0 || h[1] > last3[i - 1][1]);
+        const allDecaying = last3.every((h: [number, number], i: number) => i === 0 || h[1] < last3[i - 1][1]);
 
         const oldStatus = contributor.status;
         if (allRising) contributor.status = 'rising';
