@@ -11,6 +11,7 @@
     "db:push": "drizzle-kit push"
   },
   "dependencies": {
+    "@bsv/sdk": "^2.0.4",
     "@fontsource/dm-sans": "^5.2.8",
     "@fontsource/geist-mono": "^5.2.7",
     "@hookform/resolvers": "^3.10.0",
@@ -44,6 +45,7 @@
     "@radix-ui/react-tooltip": "^1.2.0",
     "@tanstack/react-query": "^5.60.5",
     "@tanstack/react-virtual": "^3.13.19",
+    "@types/three": "^0.183.1",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
@@ -56,6 +58,7 @@
     "express-session": "^1.18.1",
     "framer-motion": "^11.13.1",
     "input-otp": "^1.4.2",
+    "js-1sat-ord": "^0.1.91",
     "lodash": "^4.17.23",
     "lucide-react": "^0.453.0",
     "memorystore": "^1.6.7",
@@ -73,6 +76,7 @@
     "recharts": "^2.15.2",
     "tailwind-merge": "^2.6.0",
     "tailwindcss-animate": "^1.0.7",
+    "three": "^0.183.1",
     "tw-animate-css": "^1.2.5",
     "vaul": "^1.1.2",
     "wouter": "^3.3.5",

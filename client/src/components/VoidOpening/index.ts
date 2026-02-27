@@ -1,1 +1,0 @@
-export { VoidOpening } from "./VoidOpening";
