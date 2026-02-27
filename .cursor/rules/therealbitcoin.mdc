@@ -1,0 +1,47 @@
+THEREALBITCOIN.FUN PROJECT RULES
+Read before every response. Every single one.
+What this app is
+A platform on BSV mainnet where contributions are permanently inscribed as
+1Sat Ordinals. The app reads inscriptions from GorillaPool and computes
+revenue share percentages per contributor wallet address. The USER inscribes
+via Yours Wallet. The app never auto-inscribes or touches keys.
+The soul of this product (Steve Jobs principle)
+Design is not how it looks. Design is how it works.
+The five-stage psychological sequence IS the design:
+Stage 1 Recognition → Stage 2 Belonging → Stage 3 Identity →
+Stage 4 Expression → Stage 5 Ownership
+Every UI decision must serve one of these stages.
+Never skip a stage. Never rush a stage.
+Stack
+
+Backend: Node.js + Express (server/index.ts entry point)
+Frontend: React 18 + TypeScript + Vite (client/src/)
+Styling: Tailwind CSS + shadcn/ui (client/src/components/ui/ — DO NOT MODIFY)
+State: Zustand (client/src/store/)
+Server state: TanStack React Query (client/src/lib/queryClient.ts)
+WebSocket: ws package for real-time share updates (server to client)
+DB: Drizzle ORM + PostgreSQL (shared/schema.ts defines all tables)
+BSV: js-1sat-ord + @bsv/sdk for inscription building
+Indexer: GorillaPool public API (https://ordinals.gorillapool.io/api)
+Wallet: Yours Wallet (window.yours — user controls all signing)
+
+Coding rules
+
+TypeScript strict mode always
+No mock data, no simulation, no placeholder data ever
+No console.log in production — use server/index.ts log() function
+All BSV addresses come from Yours Wallet (window.yours.connect()) only
+All inscription content type is application/json
+Every contribution payload must include: app, type, projectId, text, timestamp, v
+app field value is always exactly: "therealbitcoin"
+
+What NOT to do
+
+Never auto-broadcast transactions
+Never store private keys anywhere
+Never modify files in client/src/components/ui/
+Never use mock or simulated data
+Never add packages not already in package.json without being explicitly asked
+Never render duplicate empty states — parent owns empty state, children never do
+
+

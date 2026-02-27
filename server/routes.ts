@@ -1,12 +1,17 @@
 import type { Express } from "express";
 import { type Server } from "http";
 import { WebSocketServer, WebSocket } from "ws";
-import { store } from "./storage";
-import { fairnessEngine } from "./fairness-engine";
+// @ts-ignore - db is provided by the server storage layer at runtime
+import { store, db } from "./storage";
+import { fairnessEngine, type ShareResult, computeShares } from "./fairness-engine";
 import { startSimulation, stopSimulation, isSimulationRunning } from "./simulation";
-import { contributeSchema, revenueSchema } from "@shared/schema";
+import { contributeSchema, revenueSchema, contributions, projects } from "@shared/schema";
 import type { ContributionType } from "@shared/schema";
 import { registerRealAppRoutes } from "./real-app-routes";
+import { eq, asc } from "drizzle-orm";
+import { indexer } from "./bsv-indexer";
+
+type ContributionRow = typeof contributions.$inferSelect;
 
 const clients = new Set<WebSocket>();
 
@@ -307,6 +312,76 @@ export async function registerRoutes(
       res.status(500).json({ error: err.message });
     }
   });
+
+  app.get('/api/projects/:projectId/contributions', async (req, res) => {
+    try {
+      const { projectId } = req.params;
+
+      const projectContributions = await db
+        .select()
+        .from(contributions)
+        .where(eq(contributions.projectId, projectId))
+        .orderBy(asc(contributions.timestamp));
+
+      res.json({ contributions: projectContributions });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message || "Internal server error" });
+    }
+  });
+
+  app.get('/api/projects/:projectId/shares', async (req, res) => {
+    try {
+      const { projectId } = req.params;
+      const shares: ShareResult[] = await computeShares(projectId);
+      res.json({ shares });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message || "Internal server error" });
+    }
+  });
+
+  app.post('/api/projects', async (req, res) => {
+    try {
+      const { id, name, genesisTxid, creatorAddress, description } = req.body ?? {};
+
+      if (!id || !name || !genesisTxid || !creatorAddress) {
+        return res.status(400).json({
+          error: "id, name, genesisTxid, and creatorAddress are required",
+        });
+      }
+
+      const [project] = await db
+        .insert(projects)
+        .values({
+          id,
+          name,
+          genesisTxid,
+          creatorAddress,
+          description: description ?? null,
+        })
+        .onConflictDoNothing()
+        .returning();
+
+      res.json({ project });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message || "Internal server error" });
+    }
+  });
+
+  indexer.on("new_contribution", async (contribution: ContributionRow) => {
+    const projectId = contribution.projectId;
+    if (!projectId) {
+      return;
+    }
+
+    try {
+      const shares = await computeShares(projectId);
+      broadcast('shares_updated', { projectId, shares });
+    } catch {
+      // Swallow errors here; HTTP clients are not involved in this path.
+    }
+  });
+
+  indexer.start();
 
   console.log(`
 ╔══════════════════════════════════════════════════════╗

@@ -1,5 +1,9 @@
 import { randomUUID } from "crypto";
 import type { Contribution, Contributor, ContributionType, RevenueEvent } from "@shared/schema";
+import { contributions } from "@shared/schema";
+import { and, asc, eq } from "drizzle-orm";
+// @ts-ignore - db is provided by the server storage layer at runtime
+import { db } from "./storage";
 
 const BASE_SCORES: Record<ContributionType, number> = {
   idea: 10,
@@ -244,3 +248,100 @@ export class FairnessEngine {
 }
 
 export const fairnessEngine = new FairnessEngine();
+
+export interface ShareResult {
+  address: string;
+  sharePercent: number;
+  contributionCount: number;
+}
+
+export async function computeShares(projectId: string): Promise<ShareResult[]> {
+  if (!projectId) {
+    return [];
+  }
+
+  const rows = await db
+    .select()
+    .from(contributions)
+    .where(eq(contributions.projectId, projectId))
+    .orderBy(asc(contributions.timestamp));
+
+  if (!rows.length) {
+    return [];
+  }
+
+  const now = Date.now();
+  const sevenDaysMs = 7 * 24 * 60 * 60 * 1000;
+
+  const addressTotals = new Map<string, { totalScore: number; contributionCount: number }>();
+
+  rows.forEach((row, index) => {
+    const address = row.contributorAddress;
+    if (!address) {
+      return;
+    }
+
+    let score = 100;
+
+    const ts = typeof row.timestamp === "number" ? row.timestamp : Number(row.timestamp);
+    if (Number.isFinite(ts) && ts >= now - sevenDaysMs) {
+      score *= 1.5;
+    }
+
+    const textLength = row.text?.length ?? 0;
+    if (textLength > 100) {
+      score *= 1.2;
+    }
+
+    if (index < 3) {
+      score *= 2;
+    }
+
+    const existing = addressTotals.get(address) ?? { totalScore: 0, contributionCount: 0 };
+    existing.totalScore += score;
+    existing.contributionCount += 1;
+    addressTotals.set(address, existing);
+  });
+
+  const grandTotal = Array.from(addressTotals.values()).reduce(
+    (sum, entry) => sum + entry.totalScore,
+    0,
+  );
+
+  if (grandTotal <= 0) {
+    await db
+      .update(contributions)
+      .set({ sharePercent: 0 })
+      .where(eq(contributions.projectId, projectId));
+    return [];
+  }
+
+  const shareResults: ShareResult[] = [];
+
+  await db.transaction(async (tx) => {
+    for (const [address, entry] of addressTotals) {
+      const rawPercent = (entry.totalScore / grandTotal) * 100;
+      const sharePercent = Math.round(rawPercent * 1000) / 1000;
+
+      await tx
+        .update(contributions)
+        .set({ sharePercent })
+        .where(
+          and(
+            eq(contributions.projectId, projectId),
+            eq(contributions.contributorAddress, address),
+          ),
+        );
+
+      shareResults.push({
+        address,
+        sharePercent,
+        contributionCount: entry.contributionCount,
+      });
+    }
+  });
+
+  shareResults.sort((a, b) => b.sharePercent - a.sharePercent);
+
+  return shareResults;
+}
