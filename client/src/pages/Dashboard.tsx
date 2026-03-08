@@ -3,10 +3,9 @@ import { useBsvWallet } from "@/hooks/useBsvWallet";
 import { useChainFeed } from "@/hooks/useChainFeed";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
-import ContributorCard from "@/components/ContributorPanel/ContributorCard";
-import GeometricAvatar from "@/components/ContributorPanel/GeometricAvatar";
-import FeedList from "@/components/RightPanel/FeedList";
-import TorusCarousel from "@/components/CenterStage/TorusCarousel";
+import { GeometricAvatar } from "@/components/ContributorPanel/GeometricAvatar";
+import { FeedList } from "@/components/RightPanel/FeedList";
+import { CenterStage } from "@/components/CenterStage";
 
 const PROJECT_ID = import.meta.env.VITE_PROJECT_ID ?? "";
 
@@ -222,31 +221,25 @@ export default function Dashboard() {
               .slice()
               .sort((a, b) => b.sharePercent - a.sharePercent)
               .map((share) => (
-                <ContributorCard
-                  key={share.address}
-                  address={share.address}
-                  sharePercent={share.sharePercent}
-                  isCurrentUser={share.address === ordAddress}
-                  contributionCount={share.contributionCount}
-                />
+                <div key={share.address} className="flex items-center gap-3 py-2">
+                  <GeometricAvatar seed={share.address} size={32} />
+                  <div className="flex flex-col min-w-0">
+                    <span className="text-sm font-mono text-muted-foreground truncate">
+                      {truncateAddress(share.address)}
+                      {share.address === ordAddress ? " ✓" : ""}
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      {share.sharePercent.toFixed(2)}% · {share.contributionCount}{" "}
+                      contribution{share.contributionCount === 1 ? "" : "s"}
+                    </span>
+                  </div>
+                </div>
               ))}
-            {!shareList.find((s) => s.address === ordAddress) && (
-              <ContributorCard
-                address={ordAddress}
-                sharePercent={0}
-                isCurrentUser
-                contributionCount={0}
-              />
-            )}
           </div>
 
           <div className="flex flex-col overflow-hidden">
             <div className="p-6 border-b space-y-4">
-              <TorusCarousel
-                shares={shareList}
-                currentUserAddress={ordAddress}
-                highlightNewTxid={newlyInscribedTxid}
-              />
+              <CenterStage />
               <div className="text-center space-y-1">
                 <h1 className="text-base font-semibold">therealbitcoin.fun</h1>
                 <p className="text-sm text-muted-foreground">
@@ -294,22 +287,20 @@ export default function Dashboard() {
                   .slice()
                   .sort((a, b) => b.sharePercent - a.sharePercent)
                   .map((share) => (
-                    <ContributorCard
-                      key={share.address}
-                      address={share.address}
-                      sharePercent={share.sharePercent}
-                      isCurrentUser={share.address === ordAddress}
-                      contributionCount={share.contributionCount}
-                    />
+                    <div key={share.address} className="flex items-center gap-3 py-2">
+                      <GeometricAvatar seed={share.address} size={28} />
+                      <div className="flex flex-col min-w-0">
+                        <span className="text-sm font-mono text-muted-foreground truncate">
+                          {truncateAddress(share.address)}
+                          {share.address === ordAddress ? " ✓" : ""}
+                        </span>
+                        <span className="text-xs text-muted-foreground">
+                          {share.sharePercent.toFixed(2)}% · {share.contributionCount}{" "}
+                          contribution{share.contributionCount === 1 ? "" : "s"}
+                        </span>
+                      </div>
+                    </div>
                   ))}
-                {!shareList.find((s) => s.address === ordAddress) && (
-                  <ContributorCard
-                    address={ordAddress}
-                    sharePercent={0}
-                    isCurrentUser
-                    contributionCount={0}
-                  />
-                )}
               </div>
             </details>
             <ContributeSection ordAddress={ordAddress} onInscribe={handleInscribe} />

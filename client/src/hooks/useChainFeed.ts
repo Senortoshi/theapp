@@ -63,7 +63,8 @@ export function useChainFeed(projectId: string): UseChainFeedResult {
       return;
     }
 
-    const wsUrl = `ws://${window.location.host}/ws`;
+    const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+    const wsUrl = `${protocol}//${window.location.host}/ws`;
     let socket: WebSocket | null = null;
     let reconnectTimeoutId: number | null = null;
 

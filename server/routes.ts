@@ -4,14 +4,9 @@ import { WebSocketServer, WebSocket } from "ws";
 // @ts-ignore - db is provided by the server storage layer at runtime
 import { store, db } from "./storage";
 import { fairnessEngine, type ShareResult, computeShares } from "./fairness-engine";
-import { startSimulation, stopSimulation, isSimulationRunning } from "./simulation";
 import { contributeSchema, revenueSchema, contributions, projects } from "@shared/schema";
 import type { ContributionType } from "@shared/schema";
-import { registerRealAppRoutes } from "./real-app-routes";
 import { eq, asc } from "drizzle-orm";
-import { indexer } from "./bsv-indexer";
-
-type ContributionRow = typeof contributions.$inferSelect;
 
 const clients = new Set<WebSocket>();
 
@@ -71,8 +66,6 @@ export async function registerRoutes(
       broadcast('shares_updated', { contributors: store.getAllContributorsSorted(), timestamp: Date.now() });
     }
   }, 10000);
-
-  registerRealAppRoutes(app, broadcast);
 
   app.post('/api/contribute', (req, res) => {
     try {
@@ -250,31 +243,21 @@ export async function registerRoutes(
   });
 
   app.get('/api/simulate/run', (_req, res) => {
-    try {
-      const result = startSimulation(broadcast);
-      res.json(result);
-    } catch (err: any) {
-      res.status(500).json({ error: err.message });
-    }
+    res.json({ message: 'Simulation not available' });
   });
 
   app.get('/api/simulate/stop', (_req, res) => {
-    try {
-      stopSimulation();
-      res.json({ message: 'Simulation stopped' });
-    } catch (err: any) {
-      res.status(500).json({ error: err.message });
-    }
+    res.json({ message: 'Simulation not available' });
   });
 
   app.get('/api/simulate/status', (_req, res) => {
-    res.json({ running: isSimulationRunning() });
+    res.json({ running: false });
   });
 
   app.get('/api/state', (_req, res) => {
     try {
       const state = store.getState();
-      res.json({ ...state, simulation_running: isSimulationRunning() });
+      res.json({ ...state, simulation_running: false });
     } catch (err: any) {
       res.status(500).json({ error: err.message });
     }
@@ -366,22 +349,6 @@ export async function registerRoutes(
       res.status(500).json({ error: err.message || "Internal server error" });
     }
   });
-
-  indexer.on("new_contribution", async (contribution: ContributionRow) => {
-    const projectId = contribution.projectId;
-    if (!projectId) {
-      return;
-    }
-
-    try {
-      const shares = await computeShares(projectId);
-      broadcast('shares_updated', { projectId, shares });
-    } catch {
-      // Swallow errors here; HTTP clients are not involved in this path.
-    }
-  });
-
-  indexer.start();
 
   console.log(`
 ╔══════════════════════════════════════════════════════╗

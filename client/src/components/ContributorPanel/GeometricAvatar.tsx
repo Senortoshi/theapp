@@ -3,13 +3,16 @@ import { avatarToSvgPath, getAvatarRotation } from "@/utils/geometry";
 
 export const GeometricAvatar = React.memo(function GeometricAvatar({
   seed,
+  address,
   size = 32,
 }: {
-  seed: string;
+  seed?: string;
+  address?: string;
   size?: number;
 }) {
-  const path = React.useMemo(() => avatarToSvgPath(seed, size), [seed, size]);
-  const rotation = React.useMemo(() => getAvatarRotation(seed), [seed]);
+  const resolvedSeed = seed ?? address ?? "";
+  const path = React.useMemo(() => avatarToSvgPath(resolvedSeed, size), [resolvedSeed, size]);
+  const rotation = React.useMemo(() => getAvatarRotation(resolvedSeed), [resolvedSeed]);
 
   return (
     <svg

@@ -6,11 +6,79 @@ import { useIsMobile } from "@/hooks/use-mobile";
 
 const ITEM_HEIGHT = 52;
 
-export const FeedList = React.memo(function FeedList() {
-  const events = useFeedEvents();
+interface ContributionResult {
+  id: string;
+  txid: string;
+  projectId: string;
+  contributorAddress: string;
+  text: string;
+  timestamp: number | string;
+  blockHeight?: number | null;
+  sharePercent?: number | null;
+}
+
+interface FeedListProps {
+  contributions?: ContributionResult[];
+  highlightAddress?: string | null;
+  newlyInscribedTxid?: string | null;
+}
+
+export const FeedList = React.memo(function FeedList({
+  contributions,
+  highlightAddress,
+  newlyInscribedTxid,
+}: FeedListProps = {}) {
+  const storeEvents = useFeedEvents();
   const parentRef = useRef<HTMLDivElement>(null);
   const isMobile = useIsMobile();
 
+  if (contributions) {
+    return (
+      <div className="space-y-4">
+        {contributions.length === 0 ? (
+          <div className="text-center text-muted-foreground text-sm py-8">No contributions yet</div>
+        ) : (
+          contributions.map((c) => {
+            const isHighlighted = highlightAddress != null && c.contributorAddress === highlightAddress;
+            const isNew = newlyInscribedTxid != null && c.txid === newlyInscribedTxid;
+            return (
+              <div
+                key={c.id}
+                className={`rounded-lg border p-4 space-y-2 transition-all ${
+                  isNew ? "ring-2 ring-primary animate-pulse" : ""
+                } ${isHighlighted ? "border-primary/50 bg-primary/5" : ""}`}
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-xs font-mono text-muted-foreground truncate">
+                    {c.contributorAddress.slice(0, 6)}...{c.contributorAddress.slice(-4)}
+                  </span>
+                  <span className="text-xs text-muted-foreground">
+                    {new Date(typeof c.timestamp === "number" ? c.timestamp : Number(c.timestamp)).toLocaleString()}
+                  </span>
+                </div>
+                <p className="text-sm leading-relaxed">{c.text}</p>
+                {c.sharePercent != null && c.sharePercent > 0 && (
+                  <span className="text-xs text-muted-foreground">
+                    {Number(c.sharePercent).toFixed(2)}% share
+                  </span>
+                )}
+                <a
+                  href={`https://whatsonchain.com/tx/${c.txid}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs text-muted-foreground hover:text-foreground transition-colors block"
+                >
+                  tx: {c.txid.slice(0, 8)}... ↗
+                </a>
+              </div>
+            );
+          })
+        )}
+      </div>
+    );
+  }
+
+  const events = storeEvents;
   const virtualizer = useVirtualizer({
     count: events.length,
     getScrollElement: () => parentRef.current,
