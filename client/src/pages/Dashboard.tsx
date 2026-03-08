@@ -259,7 +259,7 @@ export default function Dashboard() {
           <div className="flex items-center gap-2">
             <GeometricAvatar address={ordAddress} size={24} />
             <span className="text-sm font-mono text-muted-foreground">
-              {truncateAddress(ordAddress)} ✓
+              {ordAddress ? truncateAddress(ordAddress) : ''} ✓
             </span>
           </div>
         </header>
@@ -463,7 +463,7 @@ function GenesisInscribeForm() {
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2 text-xs text-muted-foreground">
-        <span className="font-mono truncate">{ordAddress.slice(0, 8)}...{ordAddress.slice(-4)}</span>
+        <span className="font-mono truncate">{ordAddress ? truncateAddress(ordAddress) : ''}</span>
         <span className="text-green-600">✓ connected</span>
       </div>
       <div className="space-y-1">
@@ -616,9 +616,9 @@ function ShareTooltip() {
   );
 }
 
-function truncateAddress(address: string): string {
-  if (!address || address.length < 12) {
-    return address;
+function truncateAddress(address: string | undefined | null): string {
+  if (!address || typeof address !== 'string' || address.length < 12) {
+    return address ?? '';
   }
   return `${address.slice(0, 6)}...${address.slice(-4)}`;
 }

@@ -55,9 +55,13 @@ export function useBsvWallet(): UseBsvWallet {
 
     try {
       const result = await window.yours.connect();
+      console.log('[Yours Wallet] connect() result:', result);
       setConnected(true);
-      setAddress(result.address);
-      setOrdAddress(result.ordAddress);
+      // Handle both possible return shapes from Yours Wallet
+      const addr = result?.ordAddress ?? result?.address ?? result ?? '';
+      const payAddr = result?.address ?? addr;
+      setAddress(payAddr);
+      setOrdAddress(addr);
     } catch (err) {
       const message =
         err instanceof Error ? err.message : "Failed to connect to Yours Wallet.";
