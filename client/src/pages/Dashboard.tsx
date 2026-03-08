@@ -29,7 +29,7 @@ interface ShareResult {
 export default function Dashboard() {
   const { toast } = useToast();
   const { contributions, shares, isLoading } = useChainFeed(PROJECT_ID);
-  const { connected, ordAddress, connect, inscribeContribution } = useBsvWallet();
+  const { connected, ordAddress, connect, inscribeContribution, error, connecting } = useBsvWallet();
   const [newlyInscribedTxid, setNewlyInscribedTxid] = useState<string | null>(null);
 
   const contributionList = (contributions ?? []) as ContributionResult[];
@@ -82,12 +82,23 @@ export default function Dashboard() {
 
   if (!PROJECT_ID) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center space-y-2 text-muted-foreground">
-          <p className="font-medium">Genesis inscription pending.</p>
-          <p className="text-sm">
-            The chain starts when the first contribution lands.
-          </p>
+      <div className="flex flex-col items-center justify-center min-h-screen px-6 bg-background">
+        <div className="max-w-md w-full space-y-10">
+
+          {/* Header */}
+          <div className="text-center space-y-3">
+            <h1 className="text-xl font-semibold tracking-tight text-foreground">
+              therealbitcoin.fun
+            </h1>
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              Nothing exists yet. You can be the first.<br />
+              Your inscription becomes the genesis of this chain.
+            </p>
+          </div>
+
+          {/* Genesis inscription form */}
+          <GenesisInscribeForm />
+
         </div>
       </div>
     );
@@ -111,9 +122,20 @@ export default function Dashboard() {
               Your inscription appears here when it lands.
             </p>
           </div>
-          <Button onClick={connect} size="lg" className="w-full max-w-xs">
-            Connect Yours Wallet
+          <Button onClick={connect} size="lg" className="w-full max-w-xs" disabled={connecting}>
+            {connecting ? "CONNECTING..." : "CONNECT YOURS WALLET"}
           </Button>
+          {error && (
+            <p style={{
+              fontFamily: 'var(--font-data)',
+              fontSize: '11px',
+              color: 'var(--red)',
+              marginTop: '8px',
+              textAlign: 'center'
+            }}>
+              {error}
+            </p>
+          )}
         </div>
       </div>
     );
@@ -124,9 +146,20 @@ export default function Dashboard() {
       <div className="flex flex-col min-h-screen">
         <header className="flex items-center justify-between px-6 py-4 border-b">
           <span className="font-semibold tracking-tight">therealbitcoin.fun</span>
-          <Button variant="outline" size="sm" onClick={connect}>
-            Connect Wallet
+          <Button variant="outline" size="sm" onClick={connect} disabled={connecting}>
+            {connecting ? "CONNECTING..." : "CONNECT YOURS WALLET"}
           </Button>
+          {error && (
+            <p style={{
+              fontFamily: 'var(--font-data)',
+              fontSize: '11px',
+              color: 'var(--red)',
+              marginTop: '8px',
+              textAlign: 'center'
+            }}>
+              {error}
+            </p>
+          )}
         </header>
 
         <div className="flex-1 grid grid-cols-1 lg:grid-cols-[280px_1fr_320px] overflow-hidden">
@@ -167,9 +200,20 @@ export default function Dashboard() {
                 you exist yet.
               </p>
               <div className="space-y-3">
-                <Button onClick={connect} variant="ghost" className="text-base">
-                  Connect Yours Wallet →
+                <Button onClick={connect} variant="ghost" className="text-base" disabled={connecting}>
+                  {connecting ? "CONNECTING..." : "CONNECT YOURS WALLET"}
                 </Button>
+                {error && (
+                  <p style={{
+                    fontFamily: 'var(--font-data)',
+                    fontSize: '11px',
+                    color: 'var(--red)',
+                    marginTop: '8px',
+                    textAlign: 'center'
+                  }}>
+                    {error}
+                  </p>
+                )}
                 <p className="text-xs text-muted-foreground">
                   Yours Wallet is a BSV browser extension.
                   <br />
@@ -183,9 +227,20 @@ export default function Dashboard() {
             <p className="font-medium">
               The chain doesn&apos;t know you exist yet.
             </p>
-            <Button onClick={connect} variant="ghost">
-              Connect Yours Wallet →
+            <Button onClick={connect} variant="ghost" disabled={connecting}>
+              {connecting ? "CONNECTING..." : "CONNECT YOURS WALLET"}
             </Button>
+            {error && (
+              <p style={{
+                fontFamily: 'var(--font-data)',
+                fontSize: '11px',
+                color: 'var(--red)',
+                marginTop: '8px',
+                textAlign: 'center'
+              }}>
+                {error}
+              </p>
+            )}
             <p className="text-xs text-muted-foreground">
               Yours Wallet is a BSV browser extension.
               Install at yours.org — takes 2 minutes.
@@ -311,6 +366,129 @@ export default function Dashboard() {
   }
 
   return null;
+}
+
+function GenesisInscribeForm() {
+  const { connected, ordAddress, connect, inscribeContribution, error, connecting } = useBsvWallet();
+  const { toast } = useToast();
+  const [text, setText] = useState("");
+  const [inscribing, setInscribing] = useState(false);
+  const [txid, setTxid] = useState<string | null>(null);
+
+  const handleInscribe = async () => {
+    if (!text.trim() || inscribing) return;
+    setInscribing(true);
+    try {
+      const result = await inscribeContribution("genesis", text);
+      setTxid(result.txid);
+      toast({
+        title: "Genesis inscription submitted.",
+        description: "Your inscription is being confirmed on BSV mainnet.",
+      });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Unknown error";
+      if (message.toLowerCase().includes("wallet")) {
+        toast({
+          title: "Yours Wallet not found.",
+          description: "Install it at yours.org",
+          variant: "destructive",
+        });
+        return;
+      }
+      toast({ title: "Inscription failed.", description: message, variant: "destructive" });
+    } finally {
+      setInscribing(false);
+    }
+  };
+
+  if (txid) {
+    return (
+      <div className="space-y-6">
+        <div className="rounded-lg border border-border bg-card p-5 space-y-4">
+          <p className="text-sm font-medium text-foreground">Genesis inscription submitted ✓</p>
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            Copy this transaction ID. Set it as your PROJECT_ID in Replit Secrets,
+            then redeploy. The chain is now alive.
+          </p>
+          <div
+            className="rounded border border-border bg-muted px-3 py-2 font-mono text-xs text-foreground break-all cursor-pointer select-all"
+            onClick={() => {
+              navigator.clipboard.writeText(txid);
+              toast({ title: "Copied to clipboard." });
+            }}
+          >
+            {txid}
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Tap the txid to copy · Set as <code className="text-foreground">VITE_PROJECT_ID</code> and <code className="text-foreground">PROJECT_ID</code> in Replit Secrets
+          </p>
+        </div>
+        <a
+          href={`https://whatsonchain.com/tx/${txid}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="block text-center text-xs text-muted-foreground hover:text-foreground transition-colors"
+        >
+          Verify on WhatsOnChain ↗
+        </a>
+      </div>
+    );
+  }
+
+  if (!connected) {
+    return (
+      <div className="space-y-4 text-center">
+        <Button onClick={connect} size="lg" className="w-full" disabled={connecting}>
+          {connecting ? "CONNECTING..." : "CONNECT YOURS WALLET"}
+        </Button>
+        {error && (
+          <p style={{
+            fontFamily: 'var(--font-data)',
+            fontSize: '11px',
+            color: 'var(--red)',
+            marginTop: '8px',
+            textAlign: 'center'
+          }}>
+            {error}
+          </p>
+        )}
+        <p className="text-xs text-muted-foreground">
+          Yours Wallet is a BSV browser extension.<br />
+          Install at <a href="https://yours.org" target="_blank" rel="noopener noreferrer" className="underline underline-offset-2">yours.org</a> — takes 2 minutes.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+        <span className="font-mono truncate">{ordAddress.slice(0, 8)}...{ordAddress.slice(-4)}</span>
+        <span className="text-green-600">✓ connected</span>
+      </div>
+      <div className="space-y-1">
+        <p className="text-sm font-medium text-foreground">Write the genesis contribution.</p>
+        <p className="text-xs text-muted-foreground">
+          What is this? What are you building? Why does it matter?<br />
+          This goes on BSV mainnet permanently. Make it count.
+        </p>
+      </div>
+      <textarea
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        rows={5}
+        placeholder="This is where it starts..."
+        className="w-full resize-none rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+      />
+      <Button
+        onClick={handleInscribe}
+        disabled={!text.trim() || inscribing}
+        className="w-full"
+      >
+        {inscribing ? "Inscribing to BSV Mainnet..." : "Inscribe Genesis"}
+      </Button>
+    </div>
+  );
 }
 
 function ContributeSection({

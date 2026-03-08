@@ -46,9 +46,9 @@ export function useBsvWallet(): UseBsvWallet {
     setError(null);
 
     if (typeof window === "undefined" || !window.yours) {
-      const message = "Yours Wallet is not available in this environment.";
+      const message = "Yours Wallet not detected. Open this page in a real browser tab (not Replit preview) with Yours Wallet installed.";
       setError(message);
-      throw new Error(message);
+      return;
     }
 
     setConnecting(true);
@@ -65,7 +65,6 @@ export function useBsvWallet(): UseBsvWallet {
       setAddress("");
       setOrdAddress("");
       setError(message);
-      throw new Error(message);
     } finally {
       setConnecting(false);
     }
@@ -76,13 +75,13 @@ export function useBsvWallet(): UseBsvWallet {
       if (!connected) {
         const message = "Wallet is not connected.";
         setError(message);
-        throw new Error(message);
+        return Promise.reject(new Error(message));
       }
 
       if (typeof window === "undefined" || !window.yours) {
         const message = "Yours Wallet is not available in this environment.";
         setError(message);
-        throw new Error(message);
+        return Promise.reject(new Error(message));
       }
 
       setError(null);
@@ -103,7 +102,7 @@ export function useBsvWallet(): UseBsvWallet {
             ? err.message
             : "Failed to inscribe contribution with Yours Wallet.";
         setError(message);
-        throw new Error(message);
+        return Promise.reject(new Error(message));
       }
     },
     [connected]
